@@ -1,0 +1,14 @@
+{
+  "name": "interactive-fundraiser",
+  "version": "1.0.0",
+  "description": "Live donation tracker for LaunchGood campaign with animated GIF display",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "gifuct-js": "^2.1.2",
+    "ws": "^8.16.0"
+  }
+}

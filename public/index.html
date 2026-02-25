@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orphans Around the World – Fundraiser</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Animated star background -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- ── Donation notification banner (slides in from top) ── -->
+  <div id="donation-banner">
+    <div class="banner-inner">
+      <span class="banner-icon">★</span>
+      <div class="banner-text">
+        <div class="banner-label">NEW DONATION</div>
+        <div id="banner-amount">$0</div>
+      </div>
+      <span class="banner-icon">★</span>
+    </div>
+  </div>
+
+  <!-- ── JACKPOT full-screen overlay ── -->
+  <div id="jackpot-overlay">
+    <div class="jackpot-inner">
+      <div class="jackpot-trophy">🌙</div>
+      <div class="jackpot-title">MASHA'ALLAH!</div>
+      <div class="jackpot-subtitle">Secret Prize Unlocked!</div>
+      <canvas id="jackpot-canvas"></canvas>
+      <div class="jackpot-dismiss">Press ESC or tap to continue</div>
+    </div>
+  </div>
+
+  <!-- ── Main layout ── -->
+  <main>
+    <header>
+      <div class="org-badge">Orphans Around the World</div>
+      <h1 id="campaign-title">Help Sponsor Orphaned Children</h1>
+    </header>
+
+    <!-- GIF display with flanking QR codes -->
+    <div id="gif-row">
+      <div class="qr-side">
+        <img src="qr.png" alt="Scan to donate" class="qr-img" />
+        <p class="qr-label">Scan to Donate</p>
+      </div>
+
+      <div id="gif-wrap">
+        <canvas id="gif-canvas"></canvas>
+
+        <div id="gif-placeholder">
+          <div class="crescent">☽</div>
+          <p>Add your default image at<br>
+            <code>public/gif/default.gif</code> (or <code>.png</code> / <code>.jpg</code>)<br>
+            Meme GIFs: <code>tier1.gif</code> → <code>tier4.gif</code><br>
+            <code>jackpot.gif</code>
+          </p>
+        </div>
+      </div>
+
+      <div class="qr-side">
+        <img src="qr.png" alt="Scan to donate" class="qr-img" />
+        <p class="qr-label">Scan to Donate</p>
+      </div>
+    </div>
+
+    <!-- Mystery tier strip -->
+    <div id="tier-strip"></div>
+
+    <!-- Fundraising stats -->
+    <section id="stats">
+      <div class="raised-row">
+        <span id="raised-display" class="amount">$0</span>
+        <span class="divider">raised of</span>
+        <span id="goal-display" class="goal">$5,000</span>
+      </div>
+
+      <div id="progress-track">
+        <div id="progress-fill"></div>
+        <div id="progress-pct">0%</div>
+      </div>
+
+      <div class="donors-row">
+        <span id="donors-display" class="donors-count">0</span>
+        <span class="donors-label">generous donors</span>
+      </div>
+    </section>
+
+    <!-- Recent donors list -->
+    <div id="donors-list"></div>
+
+    <a
+      href="https://www.launchgood.com/v4/campaign/sponsor_orphanschildren_from_gaza_w_msa_dalhousie"
+      target="_blank"
+      id="donate-btn"
+    >Donate Now →</a>
+
+  </main>
+
+  <!-- Confetti canvas — above everything including jackpot overlay -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Admin panel — press 'A' to show/hide -->
+  <div id="admin-panel">
+    <h3>Admin</h3>
+
+    <div class="admin-section-label">New Donation (CAD)</div>
+    <div class="admin-row">
+      <input
+        type="number"
+        id="manual-amount"
+        placeholder="Amount ($)"
+        min="1"
+        step="0.01"
+        onkeydown="if(event.key==='Enter')manualDonation()"
+        autofocus
+      />
+      <button onclick="manualDonation()">Enter ↵</button>
+    </div>
+
+    <div class="admin-section-label">Set Raised Total</div>
+    <div class="admin-row">
+      <input type="number" id="set-raised" placeholder="Raised ($)" min="0" step="0.01" />
+      <button onclick="adminSetState()">Set</button>
+    </div>
+
+    <div class="admin-section-label">Set Goal</div>
+    <div class="admin-row">
+      <input type="number" id="set-goal" placeholder="Goal ($)" min="1" step="1" />
+      <button onclick="adminSetGoal()">Set</button>
+    </div>
+
+    <button id="reset-btn" onclick="adminReset()">⚠ Reset All to Zero</button>
+
+    <div id="conn-status">Connecting…</div>
+  </div>
+
+  <script src="/lib/gifuct.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
