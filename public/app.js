@@ -1281,6 +1281,15 @@ async function manualDonation() {
 
     // Always process server event locally; dedupe avoids double-play if WS also delivers it.
     if (d.event) processDonationEvent(d.event);
+    else if (d.jackpot === true) {
+      // Hard fallback: if server confirms jackpot but event payload is missing,
+      // still show the jackpot overlay so the display never appears broken.
+      showJackpotOverlay();
+    }
+
+    if (d.jackpot === true) {
+      setAdminStatus('Jackpot triggered.');
+    }
 
     document.getElementById('manual-amount').value = '';
   } catch (err) {
