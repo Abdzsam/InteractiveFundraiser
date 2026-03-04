@@ -1,6 +1,20 @@
 services:
   - type: web
     name: interactive-fundraiser
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NO_START_PROMPT
+        value: "1"
+    healthCheckPath: /healthz
+    autoDeploy: true
+
+services:
+  - type: web
+    name: interactive-fundraiser
     runtime: node
     plan: free
     buildCommand: npm ci
