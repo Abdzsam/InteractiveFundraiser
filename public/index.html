@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Orphans Around the World – Fundraiser</title>
+  <title>Interactive Fundraiser</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -16,7 +16,7 @@
     <div class="banner-inner">
       <span class="banner-icon">★</span>
       <div class="banner-text">
-        <div class="banner-label">NEW DONATION</div>
+        <div class="banner-label" id="banner-label">NEW DONATION</div>
         <div id="banner-amount">$0</div>
       </div>
       <span class="banner-icon">★</span>
@@ -27,17 +27,17 @@
   <div id="jackpot-overlay">
     <div class="jackpot-inner">
       <div class="jackpot-trophy">🌙</div>
-      <div class="jackpot-title">MASHA'ALLAH!</div>
-      <div class="jackpot-subtitle">Secret Prize Unlocked!</div>
+      <div class="jackpot-title" id="jackpot-title">MASHA'ALLAH!</div>
+      <div class="jackpot-subtitle" id="jackpot-subtitle">Secret Prize Unlocked!</div>
       <canvas id="jackpot-canvas"></canvas>
-      <div class="jackpot-dismiss">Press ESC or tap to continue</div>
+      <div class="jackpot-dismiss" id="jackpot-dismiss">Press ESC or tap to continue</div>
     </div>
   </div>
 
   <!-- ── Main layout ── -->
   <main>
     <header>
-      <div class="org-badge">Orphans Around the World</div>
+      <div class="org-badge" id="org-badge">Organization</div>
       <h1 id="campaign-title">Help Sponsor Orphaned Children</h1>
     </header>
 
@@ -105,7 +105,7 @@
 
   <!-- Admin panel — press 'A' to show/hide -->
   <div id="admin-panel">
-    <h3>Admin</h3>
+    <h3>Quick Admin</h3>
 
     <div class="admin-section-label">New Donation (CAD)</div>
     <div class="admin-row">
@@ -135,6 +135,49 @@
 
     <button id="reset-btn" onclick="adminReset()">⚠ Reset All to Zero</button>
 
+    <div class="admin-section-label">Display Setup</div>
+    <div class="admin-row"><input id="cfg-title" type="text" placeholder="Campaign title" /></div>
+    <div class="admin-row"><input id="cfg-donate-url" type="url" placeholder="Donation link URL" /></div>
+    <div class="admin-row">
+      <input id="cfg-qr-label" type="text" placeholder="QR label (example: Scan to donate)" />
+      <input id="cfg-goal-default" type="number" min="1" step="1" placeholder="Goal" />
+    </div>
+    <div class="admin-row">
+      <input id="cfg-jackpot-hint" type="text" placeholder="Secret prize hint shown to audience" />
+      <button onclick="adminSaveFriendlyConfig()">Save Setup</button>
+    </div>
+    <div class="admin-help">Jackpot secret number is hidden from this screen.</div>
+
+    <div class="admin-section-label">Main Uploads</div>
+    <div class="admin-row">
+      <input type="file" id="qr-media-input" accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/bmp" />
+      <button onclick="adminUploadQrMedia()">Upload QR</button>
+    </div>
+    <div class="admin-row">
+      <input type="file" id="default-media-input" accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/bmp" />
+      <button onclick="adminUploadDefaultMedia()">Upload Default</button>
+    </div>
+
+    <details class="admin-optional">
+      <summary>Optional advanced controls</summary>
+      <div class="admin-section-label">Price Ranges</div>
+      <div id="tiers-editor"></div>
+      <div class="admin-row">
+        <button onclick="adminAddTierRow()">+ Add Tier</button>
+        <button onclick="adminSaveFriendlyConfig()">Save Tiers</button>
+      </div>
+      <div class="admin-row">
+        <input type="file" id="jackpot-media-input" accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/bmp" />
+        <button onclick="adminUploadJackpotMedia()">Upload Jackpot Media</button>
+      </div>
+      <div class="admin-row">
+        <input type="text" id="tier-media-key" placeholder="Tier key (example: 1point5)" />
+        <input type="file" id="tier-media-input" accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/bmp" />
+        <button onclick="adminUploadTierMedia()">Upload Tier Media</button>
+      </div>
+    </details>
+
+    <div id="admin-status">Press A to hide admin</div>
     <div id="conn-status">Connecting…</div>
   </div>
 

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: interactive-fundraiser
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NO_START_PROMPT
+        value: "1"

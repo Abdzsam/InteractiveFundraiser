@@ -30,18 +30,102 @@ const adminPanel     = document.getElementById('admin-panel');
 const jackpotOverlay = document.getElementById('jackpot-overlay');
 const jackpotCanvas  = document.getElementById('jackpot-canvas');
 const jackpotCtx     = jackpotCanvas.getContext('2d');
+const campaignTitleEl = document.getElementById('campaign-title');
+const orgBadgeEl      = document.getElementById('org-badge');
+const donateBtnEl     = document.getElementById('donate-btn');
+const bannerLabelEl   = document.getElementById('banner-label');
+const jackpotTitleEl  = document.getElementById('jackpot-title');
+const jackpotSubEl    = document.getElementById('jackpot-subtitle');
+const jackpotDismissEl = document.getElementById('jackpot-dismiss');
+const qrLabelEls      = document.querySelectorAll('.qr-label');
+const qrImageEls      = document.querySelectorAll('.qr-img');
+const configJsonEl    = document.getElementById('config-json');
+const adminStatusEl   = document.getElementById('admin-status');
+const defaultMediaInputEl = document.getElementById('default-media-input');
+const qrMediaInputEl  = document.getElementById('qr-media-input');
+const jackpotMediaInputEl = document.getElementById('jackpot-media-input');
+const tierMediaInputEl = document.getElementById('tier-media-input');
+const tierMediaKeyEl = document.getElementById('tier-media-key');
+const tiersEditorEl = document.getElementById('tiers-editor');
+const cfgTitleEl = document.getElementById('cfg-title');
+const cfgOrgEl = document.getElementById('cfg-org');
+const cfgDonateUrlEl = document.getElementById('cfg-donate-url');
+const cfgButtonTextEl = document.getElementById('cfg-button-text');
+const cfgQrLabelEl = document.getElementById('cfg-qr-label');
+const cfgGoalDefaultEl = document.getElementById('cfg-goal-default');
+const cfgCurrencyEl = document.getElementById('cfg-currency');
+const cfgLocaleEl = document.getElementById('cfg-locale');
+const cfgJackpotHintEl = document.getElementById('cfg-jackpot-hint');
 
-// ── GIF playback speed ─────────────────────────────────────────
-// Increase to play faster (2 = twice as fast, 3 = three times, etc.)
-const GIF_SPEED = 7;
+const APP_DEFAULTS = {
+  campaign: {
+    title: 'Help Sponsor Orphaned Children',
+    organization: 'Orphans Around the World',
+    donateUrl: 'https://www.launchgood.com/v4/campaign/sponsor_orphanschildren_from_gaza_w_msa_dalhousie',
+    donateButtonText: 'Donate Now →',
+    qrLabel: 'Scan to Donate',
+    currency: 'CAD',
+    locale: 'en-CA',
+    goal: 5000,
+  },
+  display: {
+    gifSpeed: 7,
+    maxRecentDonors: 5,
+    tierPreloadDelayMs: 3000,
+    pollingIntervalMs: 30000,
+  },
+  donationExperience: {
+    bannerLabel: 'NEW DONATION',
+    bannerDurationMs: 6000,
+    returnToDefaultMs: 13000,
+    jackpotReturnToDefaultMs: 17000,
+    jackpotDelayMs: 800,
+  },
+  jackpot: {
+    hintLabel: '$19–$39',
+    overlayTitle: "MASHA'ALLAH!",
+    overlaySubtitle: 'Secret Prize Unlocked!',
+    overlayDismissText: 'Press ESC or tap to continue',
+    autoDismissMs: 15000,
+  },
+  assets: {
+    qrImage: '/qr.png',
+  },
+};
+
+let appConfig = JSON.parse(JSON.stringify(APP_DEFAULTS));
+let currencyFormatter = new Intl.NumberFormat(APP_DEFAULTS.campaign.locale, {
+  style: 'currency',
+  currency: APP_DEFAULTS.campaign.currency,
+  maximumFractionDigits: 0,
+});
+let smallCurrencyFormatter = new Intl.NumberFormat(APP_DEFAULTS.campaign.locale, {
+  style: 'currency',
+  currency: APP_DEFAULTS.campaign.currency,
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+function mergeConfig(base, incoming) {
+  if (Array.isArray(base)) return Array.isArray(incoming) ? incoming : base;
+  if (!base || typeof base !== 'object') return incoming === undefined ? base : incoming;
+  const out = { ...base };
+  if (!incoming || typeof incoming !== 'object') return out;
+  for (const key of Object.keys(incoming)) {
+    out[key] = mergeConfig(base[key], incoming[key]);
+  }
+  return out;
+}
 
 // ── App state ───────────────────────────────────────────────────
 let currentRaised = 0;
-let currentGoal   = 10000;
+let currentGoal   = APP_DEFAULTS.campaign.goal;
 let currentDonors = 0;
 let tierConfig    = [];   // populated from /api/tiers
-let jackpotHint   = '$29–$59';
+let jackpotHint   = APP_DEFAULTS.jackpot.hintLabel;
 let recentDonors  = [];   // [amount] newest first, max 5
+let adminFullConfig = null;
+let mediaVersion = Date.now();
 
 // ══════════════════════════════════════════════════════════════════
 // SECTION 1 – Multi-tier GIF engine
@@ -242,7 +326,8 @@ function scheduleNextFrame(timestamp) {
   if (now >= gifNextFrameAt) {
     drawMainFrame(gifFrameIndex);
     const frame    = gifFrames[gifFrameIndex];
-    gifNextFrameAt = now + frame.delay / GIF_SPEED;
+    const speed    = Math.max(0.1, appConfig.display.gifSpeed * gifSpeedMult);
+    gifNextFrameAt = now + frame.delay / speed;
     gifFrameIndex  = (gifFrameIndex + 1) % gifFrames.length;
   }
 
@@ -349,12 +434,12 @@ async function loadDefaultContent() {
 }
 
 // Load default on page load; silently pre-cache tier GIFs in background
-loadDefaultContent();
-setTimeout(() => {
-  for (const k of ['1', '1point5', '2', '2point5', '3', '4', '5']) {
+function preloadTierGifs() {
+  for (const t of tierConfig) {
+    const k = String(t.tier);
     fetchAndDecodeGIF(`/gif/tier${k}.gif`, `tier${k}`);
   }
-}, 3000);
+}
 
 // ══════════════════════════════════════════════════════════════════
 // SECTION 2 – Jackpot overlay
@@ -387,8 +472,7 @@ async function showJackpotOverlay() {
 
   spawnConfetti(500);
 
-  // Auto-dismiss after 15 s
-  setTimeout(hideJackpotOverlay, 15000);
+  setTimeout(hideJackpotOverlay, appConfig.jackpot.autoDismissMs);
 }
 
 function animateJackpotGIF() {
@@ -406,7 +490,8 @@ function animateJackpotGIF() {
   jackpotCtx.putImageData(imageData, frame.x, frame.y);
   jackpotIndex = (jackpotIndex + 1) % jackpotFrames.length;
 
-  jackpotTimeout = setTimeout(animateJackpotGIF, Math.max(16, frame.delay / GIF_SPEED));
+  const speed = Math.max(0.1, appConfig.display.gifSpeed * gifSpeedMult);
+  jackpotTimeout = setTimeout(animateJackpotGIF, Math.max(16, frame.delay / speed));
 }
 
 function hideJackpotOverlay() {
@@ -421,7 +506,20 @@ function hideJackpotOverlay() {
 // ESC or tap the overlay to dismiss
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') hideJackpotOverlay();
-  if (e.key === 'a' || e.key === 'A') adminPanel.classList.toggle('visible');
+  if (e.key.toLowerCase && e.key.toLowerCase() === 'a') {
+    const active = document.activeElement;
+    const isControlFocused =
+      active instanceof HTMLElement &&
+      (
+        active.matches('input, textarea, select, button, [contenteditable=""], [contenteditable="true"], [role="textbox"]') ||
+        !!active.closest('#admin-panel')
+      );
+    if (isControlFocused) return;
+    adminPanel.classList.toggle('visible');
+    if (adminPanel.classList.contains('visible')) {
+      adminLoadConfig();
+    }
+  }
 });
 jackpotOverlay.addEventListener('click', hideJackpotOverlay);
 
@@ -431,7 +529,9 @@ jackpotOverlay.addEventListener('click', hideJackpotOverlay);
 
 function addToDonorsList(amount) {
   recentDonors.unshift(amount);
-  if (recentDonors.length > 5) recentDonors.length = 5;
+  if (recentDonors.length > appConfig.display.maxRecentDonors) {
+    recentDonors.length = appConfig.display.maxRecentDonors;
+  }
   renderDonorsList();
 }
 
@@ -440,7 +540,7 @@ function renderDonorsList() {
   recentDonors.forEach((amount) => {
     const el = document.createElement('div');
     el.className = 'donor-entry';
-    el.innerHTML = `<span class="donor-amount">${formatUSD(amount)}</span>`;
+    el.innerHTML = `<span class="donor-amount">${formatCurrency(amount)}</span>`;
     donorsListEl.appendChild(el);
   });
 }
@@ -449,12 +549,334 @@ function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function setAdminStatus(message, isError = false) {
+  if (!adminStatusEl) return;
+  adminStatusEl.textContent = message;
+  adminStatusEl.style.color = isError ? '#fca5a5' : '#bbf7d0';
+}
+
+function applyConfigToUI() {
+  document.title = `${appConfig.campaign.organization} - Fundraiser`;
+  campaignTitleEl.textContent = appConfig.campaign.title;
+  orgBadgeEl.textContent = appConfig.campaign.organization;
+  donateBtnEl.href = appConfig.campaign.donateUrl;
+  donateBtnEl.textContent = appConfig.campaign.donateButtonText;
+  bannerLabelEl.textContent = appConfig.donationExperience.bannerLabel;
+  jackpotTitleEl.textContent = appConfig.jackpot.overlayTitle;
+  jackpotSubEl.textContent = appConfig.jackpot.overlaySubtitle;
+  jackpotDismissEl.textContent = appConfig.jackpot.overlayDismissText;
+  qrLabelEls.forEach((el) => { el.textContent = appConfig.campaign.qrLabel; });
+  const qrSrc = `${appConfig.assets.qrImage || '/qr.png'}?v=${mediaVersion}`;
+  qrImageEls.forEach((img) => { img.src = qrSrc; });
+}
+
+function resetDefaultMediaCache() {
+  gifCache.default = undefined;
+  defaultImg = null;
+  defaultIsStatic = false;
+}
+
+function refreshCurrencyFormatters() {
+  try {
+    currencyFormatter = new Intl.NumberFormat(appConfig.campaign.locale, {
+      style: 'currency',
+      currency: appConfig.campaign.currency,
+      maximumFractionDigits: 0,
+    });
+    smallCurrencyFormatter = new Intl.NumberFormat(appConfig.campaign.locale, {
+      style: 'currency',
+      currency: appConfig.campaign.currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  } catch (_) {
+    currencyFormatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    });
+    smallCurrencyFormatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+}
+
+async function fetchPublicConfig() {
+  try {
+    const r = await fetch('/api/public-config');
+    const d = await r.json();
+    appConfig = mergeConfig(APP_DEFAULTS, d || {});
+  } catch (_) {
+    appConfig = JSON.parse(JSON.stringify(APP_DEFAULTS));
+  }
+
+  currentGoal = appConfig.campaign.goal;
+  jackpotHint = appConfig.jackpot.hintLabel;
+  refreshCurrencyFormatters();
+  applyConfigToUI();
+}
+
+async function parseJsonSafe(response) {
+  try {
+    return await response.json();
+  } catch (_) {
+    return null;
+  }
+}
+
+function renderFriendlyTierRows(tiers) {
+  if (!tiersEditorEl) return;
+  tiersEditorEl.innerHTML = '';
+  const sorted = [...(tiers || [])].sort((a, b) => Number(b.min) - Number(a.min));
+
+  sorted.forEach((tier) => {
+    const row = document.createElement('div');
+    row.className = 'tier-edit-row';
+    row.innerHTML =
+      `<input type="number" step="0.01" min="0" class="tier-min" placeholder="Min amount" value="${Number(tier.min)}" />` +
+      `<input type="text" class="tier-label" placeholder="Label shown (e.g. $10-$19)" value="${String(tier.label || '')}" />` +
+      `<input type="text" class="tier-key" placeholder="Tier key (e.g. 1point5)" value="${String(tier.tier || '')}" />` +
+      `<button type="button" class="tier-remove">Remove</button>`;
+    row.querySelector('.tier-remove').addEventListener('click', () => row.remove());
+    tiersEditorEl.appendChild(row);
+  });
+}
+
+function collectFriendlyTierRows() {
+  const rows = Array.from(tiersEditorEl?.querySelectorAll('.tier-edit-row') || []);
+  const tiers = rows.map((row) => {
+    const min = parseFloat(row.querySelector('.tier-min').value);
+    const label = row.querySelector('.tier-label').value.trim();
+    const tier = row.querySelector('.tier-key').value.trim();
+    return { min, label, tier };
+  }).filter((t) => Number.isFinite(t.min) && t.tier);
+
+  return tiers.sort((a, b) => b.min - a.min);
+}
+
+function populateFriendlyConfigForm(config) {
+  if (!config) return;
+  if (cfgTitleEl) cfgTitleEl.value = config.campaign?.title || '';
+  if (cfgOrgEl) cfgOrgEl.value = config.campaign?.organization || '';
+  if (cfgDonateUrlEl) cfgDonateUrlEl.value = config.campaign?.donateUrl || '';
+  if (cfgButtonTextEl) cfgButtonTextEl.value = config.campaign?.donateButtonText || '';
+  if (cfgQrLabelEl) cfgQrLabelEl.value = config.campaign?.qrLabel || '';
+  if (cfgGoalDefaultEl) cfgGoalDefaultEl.value = String(config.campaign?.goal ?? '');
+  if (cfgCurrencyEl) cfgCurrencyEl.value = config.campaign?.currency || '';
+  if (cfgLocaleEl) cfgLocaleEl.value = config.campaign?.locale || '';
+  if (cfgJackpotHintEl) cfgJackpotHintEl.value = config.jackpot?.hintLabel || '';
+  renderFriendlyTierRows(config.tiers || []);
+  if (tierMediaKeyEl && !tierMediaKeyEl.value && Array.isArray(config.tiers) && config.tiers.length) {
+    tierMediaKeyEl.value = String(config.tiers[config.tiers.length - 1].tier);
+  }
+}
+
+async function adminSaveFriendlyConfig() {
+  const tiers = collectFriendlyTierRows();
+
+  const payload = {
+    campaign: {
+      title: cfgTitleEl?.value?.trim(),
+      organization: cfgOrgEl?.value?.trim(),
+      donateUrl: cfgDonateUrlEl?.value?.trim(),
+      donateButtonText: cfgButtonTextEl?.value?.trim(),
+      qrLabel: cfgQrLabelEl?.value?.trim(),
+      goal: parseFloat(cfgGoalDefaultEl?.value || ''),
+      currency: cfgCurrencyEl?.value?.trim(),
+      locale: cfgLocaleEl?.value?.trim(),
+    },
+    jackpot: {
+      hintLabel: cfgJackpotHintEl?.value?.trim(),
+    },
+  };
+  if (tiers.length) payload.tiers = tiers;
+
+  try {
+    setAdminStatus('Saving settings…');
+    const r = await fetch('/api/admin/config?syncGoal=1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (r.status === 404) {
+      setAdminStatus('Server is running an old build. Restart server to enable live admin features.', true);
+      return;
+    }
+    const d = await parseJsonSafe(r);
+    if (!r.ok || d?.error) throw new Error(d?.error || 'Failed to save settings');
+
+    adminFullConfig = d.config;
+    if (configJsonEl) configJsonEl.value = JSON.stringify(d.config, null, 2);
+    populateFriendlyConfigForm(d.config);
+    await fetchPublicConfig();
+    await fetchTierConfig();
+    setAdminStatus('Settings saved live');
+  } catch (err) {
+    setAdminStatus(`Save failed: ${err.message}`, true);
+  }
+}
+
+function adminAddTierRow() {
+  const tiers = collectFriendlyTierRows();
+  tiers.push({ min: 1, label: '$1+', tier: `custom${tiers.length + 1}` });
+  renderFriendlyTierRows(tiers);
+}
+
+async function adminLoadConfig() {
+  try {
+    const r = await fetch('/api/admin/config');
+    if (r.status === 404) {
+      setAdminStatus('Server is running an old build. Restart server to enable live admin features.', true);
+      return;
+    }
+    if (!r.ok) {
+      throw new Error(`HTTP ${r.status}`);
+    }
+    const d = await parseJsonSafe(r);
+    if (!d) throw new Error('Invalid server response');
+    adminFullConfig = d;
+    if (configJsonEl) configJsonEl.value = JSON.stringify(d, null, 2);
+    populateFriendlyConfigForm(d);
+    setAdminStatus('Config loaded');
+  } catch (err) {
+    setAdminStatus(`Load failed: ${err.message}`, true);
+  }
+}
+
+async function adminSaveConfig() {
+  if (!configJsonEl) return;
+  let payload;
+  try {
+    payload = JSON.parse(configJsonEl.value);
+  } catch (err) {
+    setAdminStatus(`Invalid JSON: ${err.message}`, true);
+    return;
+  }
+
+  try {
+    setAdminStatus('Saving config…');
+    const r = await fetch('/api/admin/config?syncGoal=1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (r.status === 404) {
+      setAdminStatus('Server is running an old build. Restart server to enable live admin features.', true);
+      return;
+    }
+    const d = await parseJsonSafe(r);
+    if (!r.ok || d?.error) throw new Error(d?.error || 'Failed to save config');
+    if (!d || !d.config) throw new Error('Invalid server response');
+
+    adminFullConfig = d.config;
+    configJsonEl.value = JSON.stringify(d.config, null, 2);
+    populateFriendlyConfigForm(d.config);
+    await fetchPublicConfig();
+    await fetchTierConfig();
+    setAdminStatus('Config saved live');
+  } catch (err) {
+    setAdminStatus(`Save failed: ${err.message}`, true);
+  }
+}
+
+async function adminUploadAsset(target, file, clearInput) {
+  if (!file) {
+    setAdminStatus('Pick an image/GIF first', true);
+    return;
+  }
+  if (!file.type.startsWith('image/')) {
+    setAdminStatus('Only image files are allowed', true);
+    return;
+  }
+
+  try {
+    setAdminStatus('Uploading media…');
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('target', target);
+
+    const r = await fetch('/api/admin/upload-asset', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (r.status === 404) {
+      setAdminStatus('Server is running an old build. Restart server to enable live admin features.', true);
+      return;
+    }
+
+    const d = await parseJsonSafe(r);
+    if (!r.ok) {
+      if (r.status === 413 || d?.code === 'LIMIT_FILE_SIZE') {
+        setAdminStatus('File too large. Max 25 MB.', true);
+        return;
+      }
+      if (d?.code === 'UNSUPPORTED_MEDIA_TYPE') {
+        setAdminStatus('Unsupported file type. Use PNG, JPG, WEBP, GIF, AVIF, or BMP.', true);
+        return;
+      }
+      throw new Error(d?.error || `Upload failed (HTTP ${r.status})`);
+    }
+
+    resetDefaultMediaCache();
+    if (target === 'default' && (!activeTierFile || activeTierFile === 'default')) {
+      await loadDefaultContent();
+    }
+    if (target === 'jackpot') {
+      jackpotGifLoaded = false;
+      jackpotFrames = [];
+      jackpotCanvas.style.display = '';
+    }
+    if (target === 'qr') {
+      mediaVersion = Date.now();
+      await fetchPublicConfig();
+    }
+    if (target.startsWith('tier:')) {
+      const tierKey = target.slice(5);
+      delete gifCache[`tier${tierKey}`];
+      delete tierStaticCache[`tier${tierKey}`];
+    }
+    if (clearInput) clearInput.value = '';
+    setAdminStatus(`Upload complete: ${d.file}`);
+  } catch (err) {
+    setAdminStatus(`Upload failed: ${err.message}`, true);
+  }
+}
+
+async function adminUploadDefaultMedia() {
+  const file = defaultMediaInputEl?.files?.[0];
+  return adminUploadAsset('default', file, defaultMediaInputEl);
+}
+
+async function adminUploadQrMedia() {
+  const file = qrMediaInputEl?.files?.[0];
+  return adminUploadAsset('qr', file, qrMediaInputEl);
+}
+
+async function adminUploadJackpotMedia() {
+  const file = jackpotMediaInputEl?.files?.[0];
+  return adminUploadAsset('jackpot', file, jackpotMediaInputEl);
+}
+
+async function adminUploadTierMedia() {
+  const tierKey = tierMediaKeyEl?.value?.trim();
+  const file = tierMediaInputEl?.files?.[0];
+  if (!tierKey) {
+    setAdminStatus('Enter tier key first (example: 1point5).', true);
+    return;
+  }
+  return adminUploadAsset(`tier:${tierKey}`, file, tierMediaInputEl);
+}
+
 async function fetchTierConfig() {
   try {
     const r = await fetch('/api/tiers');
     const d = await r.json();
     tierConfig  = d.tiers;
-    jackpotHint = d.jackpotHint;
+    jackpotHint = d.jackpotHint || appConfig.jackpot.hintLabel;
     renderTierStrip();
   } catch (_) {}
 }
@@ -471,8 +893,8 @@ function renderTierStrip() {
     card.dataset.tier = String(t.tier);
     card.innerHTML =
       `<div class="tier-card-price">${t.label}</div>` +
-      `<div class="tier-card-icon">🎁</div>` +
-      `<div class="tier-card-mystery">??? meme</div>` +
+      `<div class="tier-card-icon">${t.emoji || '🎁'}</div>` +
+      `<div class="tier-card-mystery">${escapeHtml((t.name || 'Tier').slice(0, 12))}</div>` +
       `<div class="tier-card-reveal">REVEALED!</div>`;
     strip.appendChild(card);
   }
@@ -620,8 +1042,12 @@ window.addEventListener('resize', () => {
 // SECTION 6 – Animated money counter
 // ══════════════════════════════════════════════════════════════════
 
-function formatUSD(n) {
-  return '$' + Math.round(n).toLocaleString('en-US');
+function formatCurrency(n) {
+  return currencyFormatter.format(Math.round(n));
+}
+
+function formatCurrencyExact(n) {
+  return smallCurrencyFormatter.format(n);
 }
 
 function animateCounter(element, from, to, duration = 1200) {
@@ -629,9 +1055,9 @@ function animateCounter(element, from, to, duration = 1200) {
   function tick(now) {
     const t     = Math.min((now - start) / duration, 1);
     const eased = 1 - Math.pow(1 - t, 3);
-    element.textContent = formatUSD(from + (to - from) * eased);
+    element.textContent = formatCurrency(from + (to - from) * eased);
     if (t < 1) requestAnimationFrame(tick);
-    else element.textContent = formatUSD(to);
+    else element.textContent = formatCurrency(to);
   }
   requestAnimationFrame(tick);
 }
@@ -643,7 +1069,7 @@ function updateStats({ raised, goal, donors }) {
   if (donors  != null) currentDonors = donors;
 
   animateCounter(raisedEl, prevRaised, currentRaised);
-  goalEl.textContent   = formatUSD(currentGoal);
+  goalEl.textContent   = formatCurrency(currentGoal);
   donorsEl.textContent = currentDonors.toLocaleString('en-US');
 
   const pct = currentGoal > 0 ? Math.min(100, (currentRaised / currentGoal) * 100) : 0;
@@ -670,10 +1096,10 @@ function onDonation({ amount, total, goal, donors, tier = 1, jackpot = false }) 
   setTimeout(() => raisedEl.classList.remove('pulsing'), 700);
 
   // 3. Donation banner
-  bannerAmt.textContent = '+' + formatUSD(amount);
+  bannerAmt.textContent = '+' + formatCurrencyExact(amount);
   bannerEl.classList.add('active');
   if (bannerTimeout) clearTimeout(bannerTimeout);
-  bannerTimeout = setTimeout(() => bannerEl.classList.remove('active'), 6000);
+  bannerTimeout = setTimeout(() => bannerEl.classList.remove('active'), appConfig.donationExperience.bannerDurationMs);
 
   // 3b. Add to recent donors list
   addToDonorsList(amount);
@@ -684,14 +1110,17 @@ function onDonation({ amount, total, goal, donors, tier = 1, jackpot = false }) 
 
   // 5. Confetti burst (more for bigger donations)
   spawnConfetti(Math.min(300, 60 + Math.floor(amount / 2)));
+  burstThenDecay(donationToSpeed(amount));
 
   // 6. Schedule return to default after the excitement fades
-  //    Jackpot gets extra time (17 s) to outlast the 15 s auto-dismiss
-  scheduleReturnToDefault(jackpot ? 17000 : 13000);
+  //    Jackpot gets extra time to outlast auto-dismiss
+  scheduleReturnToDefault(
+    jackpot ? appConfig.donationExperience.jackpotReturnToDefaultMs : appConfig.donationExperience.returnToDefaultMs
+  );
 
   // 7. Jackpot overlay (after a short delay so the banner is visible first)
   if (jackpot) {
-    setTimeout(showJackpotOverlay, 800);
+    setTimeout(showJackpotOverlay, appConfig.donationExperience.jackpotDelayMs);
   }
 }
 
@@ -721,6 +1150,24 @@ function connectWS() {
       updateStats(msg);
     } else if (msg.type === 'donation') {
       onDonation(msg);
+    } else if (msg.type === 'config-updated') {
+      fetchPublicConfig().then(fetchTierConfig);
+      adminLoadConfig();
+    } else if (msg.type === 'media-updated') {
+      mediaVersion = msg.version || Date.now();
+      if (msg.target === 'default') {
+        resetDefaultMediaCache();
+        if (!activeTierFile || activeTierFile === 'default') loadDefaultContent();
+      } else if (msg.target === 'qr') {
+        fetchPublicConfig();
+      } else if (msg.target === 'jackpot') {
+        jackpotGifLoaded = false;
+        jackpotFrames = [];
+      } else if (String(msg.target || '').startsWith('tier:')) {
+        const tierKey = String(msg.target).slice(5);
+        delete gifCache[`tier${tierKey}`];
+        delete tierStaticCache[`tier${tierKey}`];
+      }
     } else if (msg.type === 'status') {
       connStatus.textContent = '● ' + (msg.message || 'Live');
     }
@@ -736,17 +1183,27 @@ function connectWS() {
   ws.onerror = () => ws.close();
 }
 
-connectWS();
-
-// Polling fallback if WebSocket is down
-setInterval(async () => {
+async function pollStatusFallback() {
   if (ws && ws.readyState === WebSocket.OPEN) return;
   try {
     const r = await fetch('/api/status');
     const d = await r.json();
     updateStats(d);
   } catch (_) {}
-}, 30000);
+}
+
+async function initApp() {
+  await fetchPublicConfig();
+  await fetchTierConfig();
+  await adminLoadConfig();
+  updateStats({ goal: appConfig.campaign.goal, raised: 0, donors: 0 });
+  await loadDefaultContent();
+  setTimeout(preloadTierGifs, appConfig.display.tierPreloadDelayMs);
+  connectWS();
+  setInterval(pollStatusFallback, appConfig.display.pollingIntervalMs);
+}
+
+initApp();
 
 // ══════════════════════════════════════════════════════════════════
 // SECTION 9 – Admin panel helpers

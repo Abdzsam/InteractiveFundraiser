@@ -1,0 +1,88 @@
+{
+  "campaign": {
+    "title": "Help Sponsor Orphans Around the World",
+    "organization": "Orphans Around the World",
+    "donateUrl": "https://www.launchgood.com/v4/campaign/sponsor_orphanschildren_from_gaza_w_msa_msvu",
+    "donateButtonText": "Donate Now →",
+    "qrLabel": "Scan to Donate",
+    "currency": "CAD",
+    "locale": "en-CA",
+    "goal": 5000
+  },
+  "display": {
+    "gifSpeed": 7,
+    "maxRecentDonors": 5,
+    "tierPreloadDelayMs": 3000,
+    "pollingIntervalMs": 30000
+  },
+  "donationExperience": {
+    "bannerLabel": "NEW DONATION",
+    "bannerDurationMs": 6000,
+    "returnToDefaultMs": 13000,
+    "jackpotReturnToDefaultMs": 17000,
+    "jackpotDelayMs": 800
+  },
+  "jackpot": {
+    "secretAmount": 24,
+    "triggerTolerance": 0.5,
+    "hintLabel": "$19–$29",
+    "overlayTitle": "MASHA'ALLAH!",
+    "overlaySubtitle": "Secret Prize Unlocked!",
+    "overlayDismissText": "Press ESC or tap to continue",
+    "autoDismissMs": 15000
+  },
+  "assets": {
+    "qrImage": "/qr.png"
+  },
+  "tiers": [
+    {
+      "min": 40,
+      "tier": "5",
+      "label": "$40+",
+      "emoji": "🎁",
+      "name": "TIER"
+    },
+    {
+      "min": 30,
+      "tier": "4",
+      "label": "$30–$39",
+      "emoji": "🎁",
+      "name": "TIER"
+    },
+    {
+      "min": 20,
+      "tier": "3",
+      "label": "$20–$29",
+      "emoji": "🎁",
+      "name": "TIER"
+    },
+    {
+      "min": 15,
+      "tier": "2point5",
+      "label": "$15–$19",
+      "emoji": "🎁",
+      "name": "TIER"
+    },
+    {
+      "min": 10,
+      "tier": "2",
+      "label": "$10–$14",
+      "emoji": "🎁",
+      "name": "TIER"
+    },
+    {
+      "min": 5,
+      "tier": "1point5",
+      "label": "$5–$9",
+      "emoji": "🎁",
+      "name": "TIER"
+    },
+    {
+      "min": 1,
+      "tier": "1",
+      "label": "$1–$4",
+      "emoji": "🎁",
+      "name": "TIER"
+    }
+  ]
+}

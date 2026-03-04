@@ -630,7 +630,9 @@ h1 {
   border: 1px solid rgba(22,163,74,0.3);
   border-radius: var(--radius);
   padding: 18px 20px;
-  width: 340px;
+  width: min(520px, 92vw);
+  max-height: 90vh;
+  overflow: auto;
   display: none;
   flex-direction: column;
   gap: 12px;
@@ -665,7 +667,42 @@ h1 {
   min-width: 0;
 }
 
+#default-media-input {
+  font-size: 0.76rem;
+  padding: 6px 8px;
+}
+
+#qr-media-input,
+#jackpot-media-input,
+#tier-media-input {
+  font-size: 0.76rem;
+  padding: 6px 8px;
+}
+
+.admin-textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(22,163,74,0.25);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 10px;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  outline: none;
+}
+
+.admin-textarea:focus { border-color: var(--green); }
+
 .admin-row input:focus { border-color: var(--green); }
+
+.admin-help {
+  font-size: 0.72rem;
+  color: rgba(240,253,244,0.65);
+  line-height: 1.35;
+}
 
 .admin-row button {
   background: var(--green);
@@ -707,6 +744,56 @@ h1 {
 #reset-btn:hover { opacity: 0.85; }
 
 #conn-status { font-size: 0.78rem; color: var(--dim); }
+#admin-status { font-size: 0.78rem; color: var(--green-pale); min-height: 1em; }
+
+#tiers-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tier-edit-row {
+  display: grid;
+  grid-template-columns: 0.9fr 1.2fr 1fr auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.tier-edit-row input {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(22,163,74,0.25);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  outline: none;
+}
+
+.tier-edit-row button {
+  background: #7f1d1d;
+  color: #fecaca;
+  border: 1px solid #b91c1c;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-optional {
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(255,255,255,0.03);
+}
+
+.admin-optional summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--green-pale);
+  margin-bottom: 8px;
+}
 
 /* ── Donation pulse ── */
 @keyframes pulse-raise {
