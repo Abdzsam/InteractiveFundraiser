@@ -339,6 +339,7 @@ function scheduleNextFrame(timestamp) {
 let decayInterval = null;
 
 function burstThenDecay(peakSpeed, durationMs = 10000) {
+  if (!speedBadge || !speedText) return;
   if (decayInterval) clearInterval(decayInterval);
 
   gifSpeedMult = peakSpeed;
@@ -357,12 +358,13 @@ function burstThenDecay(peakSpeed, durationMs = 10000) {
       updateSpeedBadge(1);
       clearInterval(decayInterval);
       decayInterval = null;
-      speedBadge.classList.add('hidden');
+      if (speedBadge) speedBadge.classList.add('hidden');
     }
   }, stepMs);
 }
 
 function updateSpeedBadge(speed) {
+  if (!speedBadge || !speedText) return;
   speedBadge.classList.remove('hidden');
   speedText.textContent = speed.toFixed(1) + '×';
 }
