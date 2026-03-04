@@ -1130,6 +1130,22 @@ function onDonation({ amount, total, goal, donors, tier = 1, jackpot = false }) 
 
 let ws;
 let wsReconnectDelay = 2000;
+const seenDonationEvents = [];
+const seenDonationEventSet = new Set();
+
+function processDonationEvent(msg) {
+  const eventId = msg && msg.eventId ? String(msg.eventId) : null;
+  if (eventId) {
+    if (seenDonationEventSet.has(eventId)) return;
+    seenDonationEventSet.add(eventId);
+    seenDonationEvents.push(eventId);
+    if (seenDonationEvents.length > 50) {
+      const oldest = seenDonationEvents.shift();
+      seenDonationEventSet.delete(oldest);
+    }
+  }
+  onDonation(msg);
+}
 
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -1149,7 +1165,7 @@ function connectWS() {
     if (msg.type === 'init' || msg.type === 'update') {
       updateStats(msg);
     } else if (msg.type === 'donation') {
-      onDonation(msg);
+      processDonationEvent(msg);
     } else if (msg.type === 'config-updated') {
       fetchPublicConfig().then(fetchTierConfig);
       adminLoadConfig();
@@ -1263,10 +1279,8 @@ async function manualDonation() {
     const d = await r.json();
     if (!d.success) alert('Error: ' + (d.error || 'unknown'));
 
-    // Fallback: if WS is disconnected, trigger the same UI event from HTTP response.
-    if ((!ws || ws.readyState !== WebSocket.OPEN) && d.event) {
-      onDonation(d.event);
-    }
+    // Always process server event locally; dedupe avoids double-play if WS also delivers it.
+    if (d.event) processDonationEvent(d.event);
 
     document.getElementById('manual-amount').value = '';
   } catch (err) {

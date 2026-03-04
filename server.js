@@ -417,6 +417,7 @@ app.post('/api/manual-donation', (req, res) => {
   console.log(`🎉 $${amount.toFixed(2)} — tier ${getTier(amount)}${jackpotHit ? ' 🏆 JACKPOT!' : ''} | total $${state.raised.toFixed(2)}`);
 
   const donationEvent = {
+    eventId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     type: 'donation',
     amount,
     total: state.raised,
