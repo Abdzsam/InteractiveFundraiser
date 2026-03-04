@@ -416,7 +416,7 @@ app.post('/api/manual-donation', (req, res) => {
 
   console.log(`🎉 $${amount.toFixed(2)} — tier ${getTier(amount)}${jackpotHit ? ' 🏆 JACKPOT!' : ''} | total $${state.raised.toFixed(2)}`);
 
-  broadcast({
+  const donationEvent = {
     type: 'donation',
     amount,
     total: state.raised,
@@ -424,9 +424,10 @@ app.post('/api/manual-donation', (req, res) => {
     donors: state.donors,
     tier: getTier(amount),
     jackpot: jackpotHit,
-  });
+  };
+  broadcast(donationEvent);
 
-  res.json({ success: true, total: state.raised, jackpot: jackpotHit });
+  res.json({ success: true, total: state.raised, jackpot: jackpotHit, event: donationEvent });
 });
 
 app.post('/api/reset', (_req, res) => {

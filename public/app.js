@@ -1262,6 +1262,12 @@ async function manualDonation() {
     });
     const d = await r.json();
     if (!d.success) alert('Error: ' + (d.error || 'unknown'));
+
+    // Fallback: if WS is disconnected, trigger the same UI event from HTTP response.
+    if ((!ws || ws.readyState !== WebSocket.OPEN) && d.event) {
+      onDonation(d.event);
+    }
+
     document.getElementById('manual-amount').value = '';
   } catch (err) {
     alert('Request failed: ' + err.message);
